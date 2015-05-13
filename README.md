@@ -24,6 +24,7 @@ gradlew run
 Google Play (Android)
 =====================
 
+<img src="https://github.com/jperedadnr/Game2048FX/blob/master/src/android/res/mipmap-xhdpi/ic_launcher.png" width="75">
 https://play.google.com/store/apps/details?id=org.jpereda.game2048
 
 Blog [post](http://jperedadnr.blogspot.com/2015/03/javafx-on-mobile-dream-come-true.html)
@@ -31,6 +32,7 @@ Blog [post](http://jperedadnr.blogspot.com/2015/03/javafx-on-mobile-dream-come-t
 Apple Store (iOS)
 =================
 
+<img src="https://github.com/jperedadnr/Game2048FX/blob/master/src/ios/assets/AppIcon.appiconset/Icon-76%402x.png" width="75">
 https://itunes.apple.com/de/app/2048fx/id989966696?mt=8
 
 Blog post pending (German).
