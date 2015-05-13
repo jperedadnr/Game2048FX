@@ -40,5 +40,5 @@ https://itunes.apple.com/de/app/2048fx/id989966696?mt=8
 License
 ===================
 
-The project is licensed under GPL 3. See [LICENSE](https://raw.githubusercontent.com/brunoborges/fx2048/master/LICENSE)
+The project is licensed under GPL 3. See [LICENSE](https://github.com/jperedadnr/Game2048FX/blob/master/LICENSE)
 file for the full license.
