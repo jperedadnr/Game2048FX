@@ -16,12 +16,12 @@ Android and Desktop (Java 7 adaptation): Jose Pereda jperedadnr@gmail.com
 
 iOS version: Jens Deters mail@jensd.de
 
+![Screenshot](https://github.com/jperedadnr/Game2048FX/blob/master/screenshot.jpg)
+
 Desktop
 =======
 
 Clone, build and run
-
-gradlew run
 
 ```bash
 gradlew run
