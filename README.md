@@ -10,7 +10,7 @@ fork based on the original Javascript [version](https://github.com/gabrielecirul
  - Android and Desktop (Java 7 adaptation): José Pereda
  - iOS version: Jens [Deters](mail@jensd.de)
 
-![Screenshot](https://github.com/jperedadnr/Game2048FX/blob/master/screenshot.jpg =306x)
+<img src="https://github.com/jperedadnr/Game2048FX/blob/master/screenshot.jpg" width="306">
 
 Desktop
 =======
