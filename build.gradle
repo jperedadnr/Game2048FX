@@ -1,0 +1,51 @@
+buildscript {
+    repositories {
+        jcenter()
+        maven {
+            url 'https://oss.sonatype.org/content/repositories/snapshots/'
+        }
+    }
+    dependencies {
+        classpath 'org.javafxports:jfxmobile-plugin:1.0.0-b9-SNAPSHOT'
+    }
+}
+
+apply plugin: 'org.javafxports.jfxmobile'
+
+repositories {
+    jcenter()
+    maven {
+        url 'https://oss.sonatype.org/content/repositories/snapshots/'
+    }
+}
+
+dependencies {
+    compile "com.gluonhq:charm-down-common:0.0.2-SNAPSHOT"
+    desktopRuntime "com.gluonhq:charm-down-desktop:0.0.2-SNAPSHOT"
+    androidRuntime "com.gluonhq:charm-down-android:0.0.2-SNAPSHOT"
+    iosCompile "org.robovm:robovm-cocoatouch:1.0.0"
+    iosRuntime "com.gluonhq:charm-down-ios:0.0.2-SNAPSHOT"
+}
+
+mainClassName = 'org.jpereda.game2048.Game2048'
+
+jfxmobile {
+    ios {
+        forceLinkClasses = [ 'org.jpereda.game2048.**.*', 'org.gluon.charm.down.**.*' ]
+    }
+    
+    android {
+        signingConfig {
+            storeFile file("C:\\Java\\my-release-key.keystore")
+            File propsFile = file("C:\\Java\\keystore.properties");
+            if (propsFile.exists()) {
+                Properties props = new Properties();
+                props.load(new FileInputStream(propsFile))
+                storePassword props.getProperty('RELEASE_STORE_PASSWORD')
+                keyAlias props.getProperty('RELEASE_KEY_ALIAS')
+                keyPassword props.getProperty('RELEASE_KEY_PASSWORD')
+            }
+        }
+        manifest = 'lib/android/AndroidManifest.xml'
+    }    
+}
