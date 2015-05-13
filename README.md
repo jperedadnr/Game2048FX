@@ -3,8 +3,8 @@
 
 The game 2048 built using JavaFX, JavaFXPorts mobile plugin and Gluon Charm Down to run on Desktop, Android and iOS
 
-https://bitbucket.org/javafxports/javafxmobile-plugin
-https://bitbucket.org/gluon-oss/charm-down
+ - https://bitbucket.org/javafxports/javafxmobile-plugin
+ - https://bitbucket.org/gluon-oss/charm-down
 
 Based on a fork of the fully Java 8 version https://github.com/brunoborges/fx2048
 by Bruno Borges bruno.borges@oracle.com & Jose Pereda jperedadnr@gmail.com 
