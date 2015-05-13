@@ -4,11 +4,11 @@
 This is another version of the game 2048, this time built using JavaFX, JavaFXPorts mobile [plugin](https://bitbucket.org/javafxports/javafxmobile-plugin) and Gluon [Charm Down](https://bitbucket.org/gluon-oss/charm-down) to run on Desktop, Android and iOS platforms with the very same codebase.
 
 The game is based on a fork of the fully Java 8 [version](https://github.com/brunoborges/fx2048)
-by Bruno [Borges](bruno.borges@oracle.com( & José [Pereda](jperedadnr@gmail.com), which was also based on a 
+by Bruno <a href="mailto:bruno.borges@oracle.com>Borges</a> & José <a href="mailto:jperedadnr@gmail.com>Pereda</a>, which was also based on a 
 fork based on the original Javascript [version](https://github.com/gabrielecirulli/2048) by Gabriele Cirulli.
 
  - Android and Desktop (Java 7 adaptation): José Pereda
- - iOS version: Jens [Deters](mail@jensd.de)
+ - iOS version: Jens <a href="mailto:mail@jensd.de">Deters</a>
 
 <img src="https://github.com/jperedadnr/Game2048FX/blob/master/screenshot.jpg" width="306">
 
