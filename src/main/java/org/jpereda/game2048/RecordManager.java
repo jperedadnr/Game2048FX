@@ -37,10 +37,16 @@ import org.gluon.charm.down.common.PlatformFactory;
 public class RecordManager {
 
     public final String SESSION_PROPERTIES_FILENAME;
-    private final File path = PlatformFactory.getPlatform().getPrivateStorage();
+    private File path;
     private final Properties props = new Properties();
 
     public RecordManager(int grid_size) {
+        try {
+            path = PlatformFactory.getPlatform().getPrivateStorage();
+        } catch (IOException e) {
+            String tmp = System.getProperty("java.io.tmpdir");
+            path = new File(tmp);
+        }
         this.SESSION_PROPERTIES_FILENAME = "game2048_" + grid_size + "_record.properties";
     }
 

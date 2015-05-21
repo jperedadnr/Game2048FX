@@ -20,12 +20,9 @@
 buildscript {
     repositories {
         jcenter()
-        maven {
-            url 'https://oss.sonatype.org/content/repositories/snapshots/'
-        }
     }
     dependencies {
-        classpath 'org.javafxports:jfxmobile-plugin:1.0.0-b9-SNAPSHOT'
+        classpath 'org.javafxports:jfxmobile-plugin:1.0.0-b9'
     }
 }
 
