@@ -26,8 +26,8 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.image.Image;
 import javafxports.android.FXActivity;
-import org.gluon.charm.down.common.Platform;
-import org.gluon.charm.down.common.PlatformFactory;
+import com.gluonhq.charm.down.common.Platform;
+import com.gluonhq.charm.down.common.PlatformFactory;
 
 public class AndroidPlatformProvider implements PlatformProvider {
 

@@ -30,7 +30,7 @@ import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.beans.property.StringProperty;
-import org.gluon.charm.down.common.PlatformFactory;
+import com.gluonhq.charm.down.common.PlatformFactory;
 
 /**
  *

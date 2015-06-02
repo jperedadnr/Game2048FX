@@ -42,7 +42,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.text.Font;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
-import org.gluon.charm.down.common.PlatformFactory;
+import com.gluonhq.charm.down.common.PlatformFactory;
 
 /**
  * The game 2048 built using JavaFX and Java 8. 

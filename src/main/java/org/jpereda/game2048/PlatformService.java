@@ -31,7 +31,7 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.image.Image;
-import org.gluon.charm.down.common.PlatformFactory;
+import com.gluonhq.charm.down.common.PlatformFactory;
 
 public class PlatformService {
 

@@ -25,8 +25,8 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.image.Image;
-import org.gluon.charm.down.common.PlatformFactory;
-import org.gluon.charm.down.common.Platform.LifecycleEvent;
+import com.gluonhq.charm.down.common.PlatformFactory;
+import com.gluonhq.charm.down.common.Platform.LifecycleEvent;
 
 public class IosPlatformProvider implements PlatformProvider {
 

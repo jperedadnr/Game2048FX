@@ -28,7 +28,7 @@ import java.io.Reader;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.gluon.charm.down.common.PlatformFactory;
+import com.gluonhq.charm.down.common.PlatformFactory;
 
 /**
  *

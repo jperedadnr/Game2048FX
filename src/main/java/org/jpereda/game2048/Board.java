@@ -55,7 +55,7 @@ import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 import javafx.scene.text.TextFlow;
 import javafx.util.Duration;
-import org.gluon.charm.down.common.PlatformFactory;
+import com.gluonhq.charm.down.common.PlatformFactory;
 
 /**
  *
