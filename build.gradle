@@ -65,3 +65,4 @@ jfxmobile {
         manifest = 'lib/android/AndroidManifest.xml'
     }    
 }
+
