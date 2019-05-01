@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" 
           package="org.jpereda.game2048" 
-          android:versionCode="5" 
-          android:versionName="1.0.4">
+          android:versionCode="1"
+          android:versionName="1.0.0">
 	<supports-screens android:xlargeScreens="true"/>
-	<uses-sdk android:minSdkVersion="4" android:targetSdkVersion="21"/>
+	<uses-sdk android:minSdkVersion="4" android:targetSdkVersion="26"/>
 	<application android:label="2048FX" 
                      android:icon="@mipmap/ic_launcher" 
                      android:isGame="true" 

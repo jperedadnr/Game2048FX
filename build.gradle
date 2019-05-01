@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2015 2048FX 
+ * Copyright (C) 2013-2019 2048FX 
  * Jose Pereda, Bruno Borges & Jens Deters
  * All rights reserved.
  *
@@ -22,7 +22,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'org.javafxports:jfxmobile-plugin:1.0.0-b9'
+        classpath 'org.javafxports:jfxmobile-plugin:1.3.16'
     }
 }
 
@@ -35,36 +35,31 @@ repositories {
     }
 }
 
-ext.CHARM_DOWN_VERSION = "0.0.3-SNAPSHOT"
-
 dependencies {
-    compile "com.gluonhq:charm-down-common:$CHARM_DOWN_VERSION"
-    desktopRuntime "com.gluonhq:charm-down-desktop:$CHARM_DOWN_VERSION"
-    androidRuntime "com.gluonhq:charm-down-android:$CHARM_DOWN_VERSION"
-    iosCompile "org.robovm:robovm-cocoatouch:1.0.0"
-    iosRuntime "com.gluonhq:charm-down-ios:$CHARM_DOWN_VERSION"
+    
 }
 
 mainClassName = 'org.jpereda.game2048.Game2048'
 
 jfxmobile {
+    javafxportsVersion = "8.60.11"
+    downConfig {
+        version = "3.8.6"
+        plugins 'browser', 'cache', 'device', 'display', 'lifecycle', 'settings', 'statusbar', 'storage', 'vibration'
+    }
     ios {
+        infoPList = file('src/ios/Info.plist')
         forceLinkClasses = [ 'org.jpereda.game2048.**.*', 'com.gluonhq.charm.down.**.*' ]
     }
     
     android {
+        manifest = 'src/android/AndroidManifest.xml'
         signingConfig {
-            storeFile file("C:\\Java\\my-release-key.keystore")
-            File propsFile = file("C:\\Java\\keystore.properties");
-            if (propsFile.exists()) {
-                Properties props = new Properties();
-                props.load(new FileInputStream(propsFile))
-                storePassword props.getProperty('RELEASE_STORE_PASSWORD')
-                keyAlias props.getProperty('RELEASE_KEY_ALIAS')
-                keyPassword props.getProperty('RELEASE_KEY_PASSWORD')
-            }
+            storeFile project.hasProperty('RELEASE_STORE_KEYSTORE') ? file(RELEASE_STORE_KEYSTORE) : null
+            storePassword project.hasProperty('RELEASE_STORE_PASSWORD') ? RELEASE_STORE_PASSWORD : ''
+            keyAlias project.hasProperty('RELEASE_KEY_ALIAS') ? RELEASE_KEY_ALIAS : ''
+            keyPassword project.hasProperty('RELEASE_KEY_PASSWORD') ? RELEASE_KEY_PASSWORD : ''
         }
-        manifest = 'lib/android/AndroidManifest.xml'
     }    
 }
 
