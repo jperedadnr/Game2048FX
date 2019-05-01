@@ -22,9 +22,15 @@ package org.jpereda.game2048;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+
+import com.gluonhq.charm.down.Platform;
+import com.gluonhq.charm.down.Services;
+import com.gluonhq.charm.down.plugins.LifecycleEvent;
+import com.gluonhq.charm.down.plugins.LifecycleService;
 import javafx.application.Application;
 import javafx.application.ConditionalFeature;
-import javafx.application.Platform;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -36,13 +42,13 @@ import javafx.scene.Cursor;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Tooltip;
+import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.text.Font;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
-import com.gluonhq.charm.down.common.PlatformFactory;
 
 /**
  * The game 2048 built using JavaFX and Java 8. 
@@ -58,7 +64,10 @@ import com.gluonhq.charm.down.common.PlatformFactory;
 public class Game2048 extends Application {
 
     public static final String VERSION = "1.0.4";
-    
+
+    private final BooleanProperty stop = new SimpleBooleanProperty();
+    private final BooleanProperty pause = new SimpleBooleanProperty();
+
     private GameManager gameManager;
     private Bounds gameBounds;
     private final static int MARGIN = 36;
@@ -96,7 +105,7 @@ public class Game2048 extends Application {
         root.heightProperty().addListener(resize);
 
         Scene scene;
-        if(PlatformFactory.getPlatform().getName().equals(PlatformFactory.ANDROID)){
+        if (Platform.isAndroid()) {
             Rectangle2D visualBounds = Screen.getPrimary().getVisualBounds();
             scene = new Scene(root, visualBounds.getWidth(), visualBounds.getHeight());
         } else {
@@ -108,16 +117,16 @@ public class Game2048 extends Application {
         
         addSwipeHandlers(scene);
 
-        if (PlatformFactory.getPlatform().getName().equals(PlatformFactory.DESKTOP) && isARMDevice()) {
+        if (Platform.isDesktop() && isARMDevice()) {
             primaryStage.setFullScreen(true);
             primaryStage.setFullScreenExitHint("");
         }
 
-        if (Platform.isSupported(ConditionalFeature.INPUT_TOUCH)) {
+        if (javafx.application.Platform.isSupported(ConditionalFeature.INPUT_TOUCH)) {
             scene.setCursor(Cursor.NONE);
         }
 
-        if(PlatformFactory.getPlatform().getName().equals(PlatformFactory.DESKTOP)){
+        if(Platform.isDesktop()){
             Rectangle2D visualBounds = Screen.getPrimary().getVisualBounds();
             double factor = Math.min(visualBounds.getWidth() / (gameBounds.getWidth() + MARGIN),
                     visualBounds.getHeight() / (gameBounds.getHeight() + MARGIN));
@@ -126,16 +135,22 @@ public class Game2048 extends Application {
             primaryStage.setWidth((gameBounds.getWidth() + MARGIN) * factor);
             primaryStage.setHeight((gameBounds.getHeight() + MARGIN) * factor);
         }
+
+        Services.get(LifecycleService.class)
+                .ifPresent(service -> {
+                    service.addListener(LifecycleEvent.PAUSE, () -> pause.set(true));
+                    service.addListener(LifecycleEvent.RESUME, () -> { pause.set(false); stop.set(false); });
+                });
         
-        PlatformService.getInstance().stopProperty().addListener((obs,b,b1)->{
-            if(b1){
+        stop.addListener((obs, b, b1) -> {
+            if (b1) {
                 gameManager.saveRecord();
             }
         });
-        PlatformService.getInstance().pauseProperty().addListener((obs,b,b1)->gameManager.externalPause(b,b1));
+        pause.addListener((obs,b,b1)->gameManager.externalPause(b,b1));
         primaryStage.setTitle("2048FX");
         primaryStage.setScene(scene);
-        primaryStage.getIcons().addAll(PlatformService.getInstance().getIcons());
+        primaryStage.getIcons().addAll(new Image(Game2048.class.getResourceAsStream("Icon-60.png")));
         primaryStage.show();
     }
     
@@ -208,7 +223,7 @@ public class Game2048 extends Application {
         Button btItem4 = createButtonItem("mReplay", "Try Again", t->gameManager.tryAgain());
         Button btItem5 = createButtonItem("mInfo", "About the Game", t->gameManager.aboutGame());
         toolbar.getChildren().setAll(btItem1, btItem2, btItem3, btItem4, btItem5);
-        if(PlatformFactory.DESKTOP.equals(PlatformFactory.getPlatform().getName())){
+        if(Platform.isDesktop()){
             Button btItem6 = createButtonItem("mQuit", "Quit Game", t->gameManager.quitGame());
             toolbar.getChildren().add(btItem6);
         }

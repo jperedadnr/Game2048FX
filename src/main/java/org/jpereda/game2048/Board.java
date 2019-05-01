@@ -19,11 +19,19 @@
 
 package org.jpereda.game2048;
 
+import java.io.IOException;
+import java.net.URISyntaxException;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import com.gluonhq.charm.down.Platform;
+import com.gluonhq.charm.down.Services;
+import com.gluonhq.charm.down.plugins.BrowserService;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -41,7 +49,6 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.Node;
-import static javafx.scene.Node.BASELINE_OFFSET_SAME_AS_HEIGHT;
 import javafx.scene.control.Button;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
@@ -55,7 +62,6 @@ import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 import javafx.scene.text.TextFlow;
 import javafx.util.Duration;
-import com.gluonhq.charm.down.common.PlatformFactory;
 
 /**
  *
@@ -250,7 +256,7 @@ public class Board extends Group {
     public void setToolBar(HBox toolbar){
         toolbar.disableProperty().bind(layerOnProperty);
         int div=7;
-        if(PlatformFactory.getPlatform().getName().equals(PlatformFactory.DESKTOP)){
+        if(Platform.isDesktop()){
             div=10;
         }
         toolbar.spacingProperty().bind(Bindings.divide(vGame.widthProperty(), div));
@@ -281,7 +287,6 @@ public class Board extends Group {
     }
     private void quit() {
         timerPause.stop();
-        PlatformService.getInstance().exit();
     }
     
     private final Overlay wonListener= new Overlay("You win!","",bContinue, bTry, "game-overlay-won", "game-lblWon",true);
@@ -422,15 +427,13 @@ public class Board extends Group {
                 t01.getStyleClass().setAll("game-label","game-lblAbout2");
                 Text t02 = new Text(" Game\n");
                 t02.getStyleClass().setAll("game-label","game-lblAbout");
-                Text t1 = new Text("JavaFX game - "+PlatformFactory.getPlatform().getName()+" version\n\n");
+                Text t1 = new Text("JavaFX game - "+ Platform.getCurrent().name() +" version\n\n");
                 t1.getStyleClass().setAll("game-label", "game-lblAboutSub");
                 Text t20 = new Text("Powered by ");
                 t20.getStyleClass().setAll("game-label", "game-lblAboutSub");
                 Hyperlink link1 = new Hyperlink();
                 link1.setText("JavaFXPorts");
-                link1.setOnAction(e->{
-                    PlatformService.getInstance().launchURL("http://javafxports.org/page/home");
-                });
+                link1.setOnAction(e -> browse("http://javafxports.org/page/home"));
                 link1.getStyleClass().setAll("game-label", "game-lblAboutSub2");
                 Text t21 = new Text(" Project \n\n");
                 t21.getStyleClass().setAll("game-label", "game-lblAboutSub");
@@ -438,28 +441,22 @@ public class Board extends Group {
                 t23.getStyleClass().setAll("game-label", "game-lblAboutSub");
                 Hyperlink link2 = new Hyperlink();
                 link2.setText("@JPeredaDnr");
-                link2.setOnAction(e->{
-                    PlatformService.getInstance().launchURL("https://twitter.com/JPeredaDnr");
-                });
+                link2.setOnAction(e -> browse("https://twitter.com/JPeredaDnr"));
                 link2.getStyleClass().setAll("game-label", "game-lblAboutSub2");
                 Text t22 = new Text(" & ");
-                if(PlatformFactory.getPlatform().getName().equals(PlatformFactory.IOS)){
+                if (Platform.isIOS()) {
                     t22.setText(", ");
                 }
                 t22.getStyleClass().setAll("game-label", "game-lblAboutSub");
                 Hyperlink link3 = new Hyperlink();
                 link3.setText("@brunoborges");
-                link3.setOnAction(e->{
-                    PlatformService.getInstance().launchURL("https://twitter.com/brunoborges");
-                });
+                link3.setOnAction(e -> browse("https://twitter.com/brunoborges"));
                 Text t32 = new Text(" & ");
                 t32.getStyleClass().setAll("game-label", "game-lblAboutSub");
                 link3.getStyleClass().setAll("game-label", "game-lblAboutSub2");
                 Hyperlink link4 = new Hyperlink();
                 link4.setText("@Jerady");
-                link4.setOnAction(e->{
-                    PlatformService.getInstance().launchURL("https://twitter.com/Jerady");
-                });
+                link4.setOnAction(e -> browse("https://twitter.com/Jerady"));
                 link4.getStyleClass().setAll("game-label", "game-lblAboutSub2");
                 Text t24 = new Text("\n\n");
                 t24.getStyleClass().setAll("game-label", "game-lblAboutSub");
@@ -468,7 +465,7 @@ public class Board extends Group {
                 t31.getStyleClass().setAll("game-label", "game-lblAboutSub");
                 
                 flow.getChildren().setAll(t00, t01, t02, t1, t20, link1, t21, t23, link2, t22, link3);
-                if(PlatformFactory.getPlatform().getName().equals(PlatformFactory.IOS)){
+                if (Platform.isIOS()) {
                     flow.getChildren().addAll(t32, link4);
                 }
                 flow.getChildren().addAll(t24, t31);
@@ -729,6 +726,17 @@ public class Board extends Group {
                 timerPause.stop();
             }
         }
+    }
+
+    private void browse(String url) {
+        Services.get(BrowserService.class)
+                .ifPresent(browser -> {
+                    try {
+                        browser.launchExternalBrowser(url);
+                    } catch (IOException | URISyntaxException ex) {
+                        Logger.getLogger(Board.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                });
     }
     
 }

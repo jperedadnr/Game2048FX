@@ -29,8 +29,10 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import com.gluonhq.charm.down.Services;
+import com.gluonhq.charm.down.plugins.StorageService;
 import javafx.beans.property.StringProperty;
-import com.gluonhq.charm.down.common.PlatformFactory;
 
 /**
  *
@@ -45,12 +47,9 @@ public class SessionManager {
 
     public SessionManager(GridOperator gridOperator) {
         this.gridOperator = gridOperator;
-        try {
-            path = PlatformFactory.getPlatform().getPrivateStorage();
-        } catch (IOException e) {
-            String tmp = System.getProperty("java.io.tmpdir");
-            path = new File(tmp);
-        }
+        path = Services.get(StorageService.class)
+                .flatMap(service -> service.getPrivateStorage())
+                .orElse(new File(System.getProperty("java.io.tmpdir")));
         this.SESSION_PROPERTIES_FILENAME = "game2048_" + gridOperator.getGridSize() + ".properties";
     }
 
