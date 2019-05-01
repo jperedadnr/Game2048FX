@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2015 2048FX 
+ * Copyright (C) 2013-2019 2048FX
  * Jose Pereda, Bruno Borges & Jens Deters
  * All rights reserved.
  *
@@ -19,24 +19,10 @@
 
 package org.jpereda.game2048;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.time.LocalTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import com.gluonhq.charm.down.Platform;
-import com.gluonhq.charm.down.Services;
-import com.gluonhq.charm.down.plugins.BrowserService;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
-import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -45,47 +31,50 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
-import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
-import javafx.scene.text.Text;
-import javafx.scene.text.TextAlignment;
-import javafx.scene.text.TextFlow;
 import javafx.util.Duration;
+
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.ListIterator;
+import java.util.Map;
 
 /**
  *
  * @author jpereda
  */
-public class Board extends Group {
+public class Board extends Region {
     public static final int CELL_SIZE = 128;
     private static final int BORDER_WIDTH = (14 + 2) / 2;
     private static final int TOP_HEIGHT = 92;
     private static final int GAP_HEIGHT = 50;
-    private static final int TOOLBAR_HEIGHT = 80;
 
-    private final IntegerProperty gameScoreProperty = new SimpleIntegerProperty(0);
-    private final IntegerProperty gameBestProperty = new SimpleIntegerProperty(0);
+    private final IntegerProperty gameScore = new SimpleIntegerProperty(0);
+    private final IntegerProperty gameBest = new SimpleIntegerProperty(0);
     private final IntegerProperty gameMovePoints = new SimpleIntegerProperty(0);
-    private final BooleanProperty gameWonProperty = new SimpleBooleanProperty(false);
-    private final BooleanProperty gameOverProperty = new SimpleBooleanProperty(false);
-    private final BooleanProperty gameAboutProperty = new SimpleBooleanProperty(false);
-    private final BooleanProperty gamePauseProperty = new SimpleBooleanProperty(false);
-    private final BooleanProperty gameTryAgainProperty = new SimpleBooleanProperty(false);
-    private final BooleanProperty gameSaveProperty = new SimpleBooleanProperty(false);
-    private final BooleanProperty gameRestoreProperty = new SimpleBooleanProperty(false);
-    private final BooleanProperty gameQuitProperty = new SimpleBooleanProperty(false);
-    private final BooleanProperty layerOnProperty = new SimpleBooleanProperty(false);
+    private final IntegerProperty gameID = new SimpleIntegerProperty(0);
+    private final BooleanProperty gameWon = new SimpleBooleanProperty(false);
+    private final BooleanProperty gameOverAndShare = new SimpleBooleanProperty(false);
+    private final BooleanProperty gameOver = new SimpleBooleanProperty(false);
+    private final BooleanProperty gamePause = new SimpleBooleanProperty(false);
+    private final BooleanProperty gameTryAgain = new SimpleBooleanProperty(false);
+    private final BooleanProperty gameShare = new SimpleBooleanProperty(false);
+    private final BooleanProperty gameSave = new SimpleBooleanProperty(false);
+    private final BooleanProperty gameRestore = new SimpleBooleanProperty(false);
+    private final BooleanProperty gameQuit = new SimpleBooleanProperty(false);
+    private final BooleanProperty layerOn = new SimpleBooleanProperty(false);
     private final BooleanProperty resetGame = new SimpleBooleanProperty(false);
     private final BooleanProperty clearGame = new SimpleBooleanProperty(false);
     private final BooleanProperty restoreGame = new SimpleBooleanProperty(false);
@@ -95,7 +84,7 @@ public class Board extends Group {
     private Timeline timer;
     private final StringProperty clock = new SimpleStringProperty("00:00:00");
     private final DateTimeFormatter fmt = DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.systemDefault());
-    
+
     // User Interface controls
     private final VBox vGame = new VBox(0);
     private final Group gridGroup = new Group();
@@ -105,11 +94,11 @@ public class Board extends Group {
     private final Label lblScore = new Label("0");
     private final Label lblBest = new Label("0");
     private final Label lblPoints = new Label();
-    
+
     private final HBox overlay = new HBox();
     private final VBox txtOverlay = new VBox(10);
-    private final Label lOvrText= new Label();
-    private final Label lOvrSubText= new Label();
+    private final Label lOvrText = new Label();
+    private final Label lOvrSubText = new Label();
     private final HBox buttonsOverlay = new HBox();
     private final Button bTry = new Button("Try again");
     private final Button bContinue = new Button("Keep going");
@@ -117,88 +106,94 @@ public class Board extends Group {
     private final Button bSave = new Button("Save");
     private final Button bRestore = new Button("Restore");
     private final Button bQuit = new Button("Quit");
-    
-    private final HBox hToolbar = new HBox();
-        
-    private final Label lblTime=new Label();  
+    private final Button bShare = new Button("Share");
+
+    private final Label lblMode = new Label();
+    private final Label lblTime = new Label();
     private Timeline timerPause;
-    
+
     private final int gridWidth;
     private final GridOperator gridOperator;
     private final SessionManager sessionManager;
 
-    public Board(GridOperator grid){
-        this.gridOperator=grid;
+    public Board(GridOperator grid) {
+
+        this.gridOperator = grid;
         gridWidth = CELL_SIZE * grid.getGridSize() + BORDER_WIDTH * 2;
-        sessionManager = new SessionManager(gridOperator);
-        
+        sessionManager = new SessionManager(gridOperator.getGridSize());
+
         createScore();
         createGrid();
-        
+
         initGameProperties();
     }
-    
+
     private void createScore() {
         Label lblTitle = new Label("2048");
-        lblTitle.getStyleClass().addAll("game-label","game-title");
+        lblTitle.getStyleClass().addAll("game-label", "game-title");
         Label lblSubtitle = new Label("FX");
-        lblSubtitle.getStyleClass().addAll("game-label","game-subtitle");
+        lblSubtitle.getStyleClass().addAll("game-label", "game-subtitle");
         HBox hFill = new HBox();
         HBox.setHgrow(hFill, Priority.ALWAYS);
         hFill.setAlignment(Pos.CENTER);
-        
+
         VBox vScores = new VBox();
-        HBox hScores=new HBox(5);
-        
+        HBox hScores = new HBox(5);
+
         vScore.setAlignment(Pos.CENTER);
         vScore.getStyleClass().add("game-vbox");
         Label lblTit = new Label("SCORE");
-        lblTit.getStyleClass().addAll("game-label","game-titScore");
-        lblScore.getStyleClass().addAll("game-label","game-score");
-        lblScore.textProperty().bind(gameScoreProperty.asString());
+        lblTit.getStyleClass().addAll("game-label", "game-titScore");
+        lblScore.getStyleClass().addAll("game-label", "game-score");
+        lblScore.textProperty().bind(gameScore.asString());
         vScore.getChildren().addAll(lblTit, lblScore);
 
         VBox vRecord = new VBox(-5);
         vRecord.setAlignment(Pos.CENTER);
         vRecord.getStyleClass().add("game-vbox");
         Label lblTitBest = new Label("BEST");
-        lblTitBest.getStyleClass().addAll("game-label","game-titScore");
-        lblBest.getStyleClass().addAll("game-label","game-score");
-        lblBest.textProperty().bind(gameBestProperty.asString());
+        lblTitBest.getStyleClass().addAll("game-label", "game-titScore");
+        lblBest.getStyleClass().addAll("game-label", "game-score");
+        lblBest.textProperty().bind(gameBest.asString());
         vRecord.getChildren().addAll(lblTitBest, lblBest);
-        hScores.getChildren().addAll(vScore,vRecord);
+        hScores.getChildren().addAll(vScore, vRecord);
         VBox vFill = new VBox();
         VBox.setVgrow(vFill, Priority.ALWAYS);
-        vScores.getChildren().addAll(hScores,vFill);
-                
-        hTop.getChildren().addAll(lblTitle, lblSubtitle, hFill,vScores);
+        vScores.getChildren().addAll(hScores, vFill);
+
+        hTop.getChildren().addAll(lblTitle, lblSubtitle, hFill, vScores);
         hTop.setMinSize(gridWidth, TOP_HEIGHT);
         hTop.setPrefSize(gridWidth, TOP_HEIGHT);
         hTop.setMaxSize(gridWidth, TOP_HEIGHT);
 
         vGame.getChildren().add(hTop);
 
-        HBox hTime=new HBox();
+        HBox hTime = new HBox();
         hTime.setMinSize(gridWidth, GAP_HEIGHT);
-        hTime.setAlignment(Pos.BOTTOM_RIGHT);
-        lblTime.getStyleClass().addAll("game-label","game-time");
+        hTime.setAlignment(Pos.BOTTOM_CENTER);
+
+        lblMode.getStyleClass().addAll("game-label", "game-time");
+
+        lblTime.getStyleClass().addAll("game-label", "game-time");
         lblTime.textProperty().bind(clock);
-        timer=new Timeline(new KeyFrame(Duration.ZERO, e->{
+        HBox hGap = new HBox();
+        HBox.setHgrow(hGap, Priority.ALWAYS);
+        timer = new Timeline(new KeyFrame(Duration.ZERO, e -> {
             clock.set(LocalTime.now().minusNanos(time.toNanoOfDay()).format(fmt));
-        }),new KeyFrame(Duration.seconds(1)));
+        }), new KeyFrame(Duration.seconds(1)));
         timer.setCycleCount(Animation.INDEFINITE);
-        hTime.getChildren().add(lblTime);
-        
+        hTime.getChildren().addAll(lblMode, hGap, lblTime);
+
         vGame.getChildren().add(hTime);
         getChildren().add(vGame);
-        
-        lblPoints.getStyleClass().addAll("game-label","game-points");
+
+        lblPoints.getStyleClass().addAll("game-label", "game-points");
         lblPoints.setAlignment(Pos.CENTER);
         lblPoints.setMinWidth(100);
         getChildren().add(lblPoints);
     }
-    
-    private Rectangle createCell(int i, int j){
+
+    private Rectangle createCell(int i, int j) {
         final double arcSize = CELL_SIZE / 6d;
         Rectangle cell = new Rectangle(i * CELL_SIZE, j * CELL_SIZE, CELL_SIZE, CELL_SIZE);
         // provide default style in case css are not loaded
@@ -206,14 +201,14 @@ public class Board extends Group {
         cell.setStroke(Color.GREY);
         cell.setArcHeight(arcSize);
         cell.setArcWidth(arcSize);
-        cell.getStyleClass().add("game-grid-cell");
+        cell.getStyleClass().setAll("game-grid-cell");
         return cell;
     }
-    
+
     private void createGrid() {
-        
-        for(int i=0; i<gridOperator.getGridSize(); i++){
-            for(int j=0; j<gridOperator.getGridSize(); j++){
+
+        for (int i = 0; i < gridOperator.getGridSize(); i++) {
+            for (int j = 0; j < gridOperator.getGridSize(); j++) {
                 gridGroup.getChildren().add(createCell(i, j));
             }
         }
@@ -228,277 +223,206 @@ public class Board extends Group {
         hBottom.setMinSize(gridWidth, gridWidth);
         hBottom.setPrefSize(gridWidth, gridWidth);
         hBottom.setMaxSize(gridWidth, gridWidth);
-        
+
         // Clip hBottom to keep the dropshadow effects within the hBottom
         Rectangle rect = new Rectangle(gridWidth, gridWidth);
         hBottom.setClip(rect);
         hBottom.getChildren().add(gridGroup);
-        
+
         vGame.getChildren().add(hBottom);
-        
-        // toolbar
-        
-        HBox hPadding= new HBox();
-        hPadding.setMinSize(gridWidth, TOOLBAR_HEIGHT);
-        hPadding.setPrefSize(gridWidth, TOOLBAR_HEIGHT);
-        hPadding.setMaxSize(gridWidth, TOOLBAR_HEIGHT);
-        
-        hToolbar.setAlignment(Pos.CENTER);
-        hToolbar.getStyleClass().add("game-backGrid");
-        hToolbar.setMinSize(gridWidth, TOOLBAR_HEIGHT);
-        hToolbar.setPrefSize(gridWidth, TOOLBAR_HEIGHT);
-        hToolbar.setMaxSize(gridWidth, TOOLBAR_HEIGHT);
-        
-        vGame.getChildren().add(hPadding); 
-        vGame.getChildren().add(hToolbar); 
+
     }
 
-    public void setToolBar(HBox toolbar){
-        toolbar.disableProperty().bind(layerOnProperty);
-        int div=7;
-        if(Platform.isDesktop()){
-            div=10;
-        }
-        toolbar.spacingProperty().bind(Bindings.divide(vGame.widthProperty(), div));
-        hToolbar.getChildren().add(toolbar);        
-    }
-    
-    public void tryAgain(){
-        if(!gameTryAgainProperty.get()){
-            gameTryAgainProperty.set(true);
+    public void tryAgain(boolean ask) {
+        if (ask) {
+            if (!gameTryAgain.get()) {
+                gameTryAgain.set(true);
+            }
+        } else {
+            btnTryAgain();
         }
     }
-    
-    private void btnTryAgain(){
+
+    private void btnTryAgain() {
+        setGameID(Math.max(sessionManager.getGameID(), gameID.get()) + 1);
+
         timerPause.stop();
-        layerOnProperty.set(false);
+        layerOn.set(false);
         doResetGame();
     }
-    private void keepGoing(){
+
+    public void keepGoing() {
         timerPause.stop();
-        layerOnProperty.set(false);
-        gamePauseProperty.set(false);
-        gameTryAgainProperty.set(false);
-        gameSaveProperty.set(false);
-        gameRestoreProperty.set(false);
-        gameAboutProperty.set(false);
-        gameQuitProperty.set(false);
+        layerOn.set(false);
+        gamePause.set(false);
+        gameTryAgain.set(false);
+        gameSave.set(false);
+        gameRestore.set(false);
+        gameQuit.set(false);
+        gameShare.set(false);
         timer.play();
     }
-    private void quit() {
-        timerPause.stop();
+
+    private final Overlay wonListener = new Overlay("You win!", "", bContinue, bTry, "game-overlay-won", "game-lblWon", true);
+
+    public boolean isGameOverAndShare() {
+        return gameOverAndShare.get();
     }
-    
-    private final Overlay wonListener= new Overlay("You win!","",bContinue, bTry, "game-overlay-won", "game-lblWon",true);
-    
+
+    public boolean isGameOver() {
+        return gameOver.get();
+    }
+
+    public boolean isGameWon() {
+        return gameWon.get();
+    }
+
     private class Overlay implements ChangeListener<Boolean> {
 
         private final Button btn1, btn2;
         private final String message, warning;
         private final String style1, style2;
         private final boolean pause;
-        
-        public Overlay(String message, String warning, Button btn1, Button btn2, String style1, String style2, boolean pause){
-            this.message=message;
-            this.warning=warning;
-            this.btn1=btn1;
-            this.btn2=btn2;
-            this.style1=style1;
-            this.style2=style2;
-            this.pause=pause;
+
+        public Overlay(String message, String warning, Button btn1, Button btn2, String style1, String style2, boolean pause) {
+            this.message = message;
+            this.warning = warning;
+            this.btn1 = btn1;
+            this.btn2 = btn2;
+            this.style1 = style1;
+            this.style2 = style2;
+            this.pause = pause;
         }
-        
+
         @Override
         public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
             if (newValue) {
                 timer.stop();
-                if(pause){
+                if (pause) {
                     timerPause.play();
                 }
-                overlay.getStyleClass().setAll("game-overlay",style1);
+                overlay.getStyleClass().setAll("game-overlay", style1);
                 lOvrText.setText(message);
-                lOvrText.getStyleClass().setAll("game-label",style2);
+                lOvrText.getStyleClass().setAll("game-label", style2);
                 lOvrSubText.setText(warning);
-                lOvrSubText.getStyleClass().setAll("game-label","game-lblWarning");
-                txtOverlay.getChildren().setAll(lOvrText,lOvrSubText);
+                lOvrSubText.getStyleClass().setAll("game-label", "game-lblWarning");
+                txtOverlay.getChildren().setAll(lOvrText, lOvrSubText);
                 buttonsOverlay.getChildren().setAll(btn1);
-                if(btn2!=null){
+                if (btn2 != null) {
                     buttonsOverlay.getChildren().add(btn2);
                 }
-                Board.this.getChildren().addAll(overlay,buttonsOverlay);
-                layerOnProperty.set(true);
+                if (!layerOn.get()) {
+                    Board.this.getChildren().addAll(overlay, buttonsOverlay);
+                    layerOn.set(true);
+                }
             }
         }
     }
-    
+
     private void initGameProperties() {
-        
+
         overlay.setMinSize(gridWidth, gridWidth);
         overlay.setAlignment(Pos.CENTER);
         overlay.setTranslateY(TOP_HEIGHT + GAP_HEIGHT);
-        
+
         overlay.getChildren().setAll(txtOverlay);
         txtOverlay.setAlignment(Pos.CENTER);
-        
+
         buttonsOverlay.setAlignment(Pos.CENTER);
         buttonsOverlay.setTranslateY(TOP_HEIGHT + GAP_HEIGHT + gridWidth / 2);
         buttonsOverlay.setMinSize(gridWidth, gridWidth / 2);
         buttonsOverlay.setSpacing(10);
-        
+
         bTry.getStyleClass().add("game-button");
-        bTry.setOnTouchPressed(e -> btnTryAgain());
         bTry.setOnAction(e -> btnTryAgain());
-        bTry.setOnKeyPressed(e->{
-            if(e.getCode().equals(KeyCode.ENTER) || e.getCode().equals(KeyCode.SPACE)){
+        bTry.setOnKeyPressed(e -> {
+            if (e.getCode().equals(KeyCode.ENTER) || e.getCode().equals(KeyCode.SPACE)) {
                 btnTryAgain();
             }
         });
 
+        bShare.getStyleClass().add("game-button");
+        bShare.setOnAction(e -> {
+            gameShare.set(true);
+            gameShare.set(false);
+        });
+        bShare.setOnKeyPressed(e -> {
+            if (e.getCode().equals(KeyCode.ENTER) || e.getCode().equals(KeyCode.SPACE)) {
+                gameShare.set(true);
+                gameShare.set(false);
+            }
+        });
+
         bContinue.getStyleClass().add("game-button");
-        bContinue.setOnTouchPressed(e -> keepGoing());
         bContinue.setOnMouseClicked(e -> keepGoing());
-        bContinue.setOnKeyPressed(e->{
-            if(e.getCode().equals(KeyCode.ENTER) || e.getCode().equals(KeyCode.SPACE)){
+        bContinue.setOnKeyPressed(e -> {
+            if (e.getCode().equals(KeyCode.ENTER) || e.getCode().equals(KeyCode.SPACE)) {
                 keepGoing();
             }
         });
         bContinueNo.getStyleClass().add("game-button");
-        bContinueNo.setOnTouchPressed(e -> keepGoing());
         bContinueNo.setOnMouseClicked(e -> keepGoing());
-        bContinueNo.setOnKeyPressed(e->{
-            if(e.getCode().equals(KeyCode.ENTER) || e.getCode().equals(KeyCode.SPACE)){
+        bContinueNo.setOnKeyPressed(e -> {
+            if (e.getCode().equals(KeyCode.ENTER) || e.getCode().equals(KeyCode.SPACE)) {
                 keepGoing();
             }
         });
-        
+
         bSave.getStyleClass().add("game-button");
-        bSave.setOnTouchPressed(e -> saveGame.set(true));
         bSave.setOnMouseClicked(e -> saveGame.set(true));
-        bSave.setOnKeyPressed(e->{
-            if(e.getCode().equals(KeyCode.ENTER) || e.getCode().equals(KeyCode.SPACE)){
+        bSave.setOnKeyPressed(e -> {
+            if (e.getCode().equals(KeyCode.ENTER) || e.getCode().equals(KeyCode.SPACE)) {
                 saveGame.set(true);
             }
         });
 
         bRestore.getStyleClass().add("game-button");
-        bRestore.setOnTouchPressed(e -> restoreGame.set(true));
         bRestore.setOnMouseClicked(e -> restoreGame.set(true));
-        bRestore.setOnKeyPressed(e->{
-            if(e.getCode().equals(KeyCode.ENTER) || e.getCode().equals(KeyCode.SPACE)){
+        bRestore.setOnKeyPressed(e -> {
+            if (e.getCode().equals(KeyCode.ENTER) || e.getCode().equals(KeyCode.SPACE)) {
                 restoreGame.set(true);
             }
         });
 
-
-        bQuit.getStyleClass().add("game-button");
-        bQuit.setOnTouchPressed(e -> quit());
-        bQuit.setOnMouseClicked(e -> quit());
-        bQuit.setOnKeyPressed(e->{
-            if(e.getCode().equals(KeyCode.ENTER) || e.getCode().equals(KeyCode.SPACE)){
-                quit();
-            }
-        });
-      
-        timerPause=new Timeline(new KeyFrame(Duration.seconds(1), 
-                e->time=time.plusNanos(1_000_000_000)));
+        timerPause = new Timeline(new KeyFrame(Duration.seconds(1),
+                e -> time = time.plusNanos(1_000_000_000)));
         timerPause.setCycleCount(Animation.INDEFINITE);
-        
-        gameWonProperty.addListener(wonListener);
-        gameOverProperty.addListener(new Overlay("Game over!","",bTry, null, "game-overlay-over", "game-lblOver",false));
-        gamePauseProperty.addListener(new Overlay("Game Paused","",bContinue, null, "game-overlay-pause", "game-lblPause",true));
-        gameTryAgainProperty.addListener(new Overlay("Try Again?","Current game will be deleted",bTry, bContinueNo, "game-overlay-pause", "game-lblPause",true));
-        gameSaveProperty.addListener(new Overlay("Save?","Previous saved data will be overwritten",bSave, bContinueNo, "game-overlay-pause", "game-lblPause",true));
-        gameRestoreProperty.addListener(new Overlay("Restore?","Current game will be deleted",bRestore, bContinueNo, "game-overlay-pause", "game-lblPause",true));
-        gameAboutProperty.addListener((observable, oldValue, newValue) -> {
-            if (newValue) {
-                timer.stop();
-                timerPause.play();
-                overlay.getStyleClass().setAll("game-overlay","game-overlay-quit");
-                TextFlow flow = new TextFlow();
-                flow.setTextAlignment(TextAlignment.CENTER);
-                flow.setPadding(new Insets(10,0,0,0));
-                flow.setMinSize(gridWidth, gridWidth);
-                flow.setPrefSize(gridWidth, gridWidth);
-                flow.setMaxSize(gridWidth, gridWidth);
-                flow.setPrefSize(BASELINE_OFFSET_SAME_AS_HEIGHT, BASELINE_OFFSET_SAME_AS_HEIGHT);
-                Text t00 = new Text("2048");
-                t00.getStyleClass().setAll("game-label","game-lblAbout");
-                Text t01 = new Text("FX");
-                t01.getStyleClass().setAll("game-label","game-lblAbout2");
-                Text t02 = new Text(" Game\n");
-                t02.getStyleClass().setAll("game-label","game-lblAbout");
-                Text t1 = new Text("JavaFX game - "+ Platform.getCurrent().name() +" version\n\n");
-                t1.getStyleClass().setAll("game-label", "game-lblAboutSub");
-                Text t20 = new Text("Powered by ");
-                t20.getStyleClass().setAll("game-label", "game-lblAboutSub");
-                Hyperlink link1 = new Hyperlink();
-                link1.setText("JavaFXPorts");
-                link1.setOnAction(e -> browse("http://javafxports.org/page/home"));
-                link1.getStyleClass().setAll("game-label", "game-lblAboutSub2");
-                Text t21 = new Text(" Project \n\n");
-                t21.getStyleClass().setAll("game-label", "game-lblAboutSub");
-                Text t23 = new Text("\u00A9 ");
-                t23.getStyleClass().setAll("game-label", "game-lblAboutSub");
-                Hyperlink link2 = new Hyperlink();
-                link2.setText("@JPeredaDnr");
-                link2.setOnAction(e -> browse("https://twitter.com/JPeredaDnr"));
-                link2.getStyleClass().setAll("game-label", "game-lblAboutSub2");
-                Text t22 = new Text(" & ");
-                if (Platform.isIOS()) {
-                    t22.setText(", ");
-                }
-                t22.getStyleClass().setAll("game-label", "game-lblAboutSub");
-                Hyperlink link3 = new Hyperlink();
-                link3.setText("@brunoborges");
-                link3.setOnAction(e -> browse("https://twitter.com/brunoborges"));
-                Text t32 = new Text(" & ");
-                t32.getStyleClass().setAll("game-label", "game-lblAboutSub");
-                link3.getStyleClass().setAll("game-label", "game-lblAboutSub2");
-                Hyperlink link4 = new Hyperlink();
-                link4.setText("@Jerady");
-                link4.setOnAction(e -> browse("https://twitter.com/Jerady"));
-                link4.getStyleClass().setAll("game-label", "game-lblAboutSub2");
-                Text t24 = new Text("\n\n");
-                t24.getStyleClass().setAll("game-label", "game-lblAboutSub");
-                
-                Text t31 = new Text(" Version "+Game2048.VERSION+" - 2015\n\n");
-                t31.getStyleClass().setAll("game-label", "game-lblAboutSub");
-                
-                flow.getChildren().setAll(t00, t01, t02, t1, t20, link1, t21, t23, link2, t22, link3);
-                if (Platform.isIOS()) {
-                    flow.getChildren().addAll(t32, link4);
-                }
-                flow.getChildren().addAll(t24, t31);
-                txtOverlay.getChildren().setAll(flow);
-                buttonsOverlay.getChildren().setAll(bContinue);
-                this.getChildren().removeAll(overlay,buttonsOverlay);
-                this.getChildren().addAll(overlay,buttonsOverlay);
-                layerOnProperty.set(true);
-            }
-        });
-        gameQuitProperty.addListener(new Overlay("Quit Game?","Non saved data will be lost",bQuit, bContinueNo, "game-overlay-quit", "game-lblQuit",true));
-        
+
+        gameWon.addListener(wonListener);
+        gameOverAndShare.addListener(new Overlay("Game over!", "", bShare, bTry, "game-overlay-over", "game-lblOver", false));
+        gameOver.addListener(new Overlay("Game over!", "", bTry, null, "game-overlay-over", "game-lblOver", false));
+        gamePause.addListener(new Overlay("Game Paused", "", bContinue, null, "game-overlay-pause", "game-lblPause", true));
+        gameTryAgain.addListener(new Overlay("Try Again?", "Current game will be deleted", bTry, bContinueNo, "game-overlay-pause", "game-lblPause", true));
+        gameSave.addListener(new Overlay("Save?", "Previous saved data will be overwritten", bSave, bContinueNo, "game-overlay-pause", "game-lblPause", true));
+        gameRestore.addListener(new Overlay("Restore?", "Current game will be deleted", bRestore, bContinueNo, "game-overlay-pause", "game-lblPause", true));
+        gameQuit.addListener(new Overlay("Quit Game?", "Non saved data will be lost", bQuit, bContinueNo, "game-overlay-quit", "game-lblQuit", true));
+
         restoreRecord();
-        
-        gameScoreProperty.addListener((ov,i,i1)->{
-            if(i1.intValue()>gameBestProperty.get()){
-                gameBestProperty.set(i1.intValue());
+
+        gameScore.addListener((ov, i, i1) -> {
+            if (i1.intValue() > gameBest.get()) {
+                gameBest.set(i1.intValue());
             }
         });
-        
-        layerOnProperty.addListener((ov,b,b1)->{
-            if(!b1){
+
+        layerOn.addListener((ov, b, b1) -> {
+            if (!b1) {
                 getChildren().removeAll(overlay, buttonsOverlay);
                 // Keep the focus on the game when the layer is removed:
                 getParent().requestFocus();
-            } else if(b1){
+            } else if (b1) {
                 // Set focus on the first button
                 buttonsOverlay.getChildren().get(0).requestFocus();
             }
         });
-        
+
+        gameID.addListener(o -> {
+            int gameMode = sessionManager.getGameMode();
+            lblMode.setText((gameMode == 0 ? "Easy" : gameMode == 1 ? "Advanced" : "Expert") + " Mode, game #" + (gameID.get()+1));
+        });
+        setGameID(sessionManager.getGameID() + 1);
     }
-    
+
     private void doClearGame() {
         saveRecord();
         for (ListIterator<Node> iterator = gridGroup.getChildren().listIterator(); iterator.hasNext();) {
@@ -507,41 +431,42 @@ public class Board extends Group {
             }
         }
         getChildren().removeAll(overlay, buttonsOverlay);
-        
+
         clearGame.set(false);
         resetGame.set(false);
         restoreGame.set(false);
         saveGame.set(false);
-        layerOnProperty.set(false);
-        gameScoreProperty.set(0);
-        gameWonProperty.set(false);
-        gameOverProperty.set(false);
-        gameAboutProperty.set(false);
-        gamePauseProperty.set(false);
-        gameTryAgainProperty.set(false);
-        gameSaveProperty.set(false);
-        gameRestoreProperty.set(false);
-        gameQuitProperty.set(false);
-        
+        layerOn.set(false);
+        gameScore.set(0);
+        gameWon.set(false);
+        gameOverAndShare.set(false);
+        gameOver.set(false);
+        gamePause.set(false);
+        gameTryAgain.set(false);
+        gameShare.set(false);
+        gameSave.set(false);
+        gameRestore.set(false);
+        gameQuit.set(false);
+
         clearGame.set(true);
     }
-    
+
     private void doResetGame() {
         doClearGame();
         resetGame.set(true);
     }
-    
+
     public void animateScore() {
-        if(gameMovePoints.get()==0){
+        if (gameMovePoints.get() == 0) {
             return;
         }
-        
+
         final Timeline timeline = new Timeline();
         lblPoints.setText("+" + gameMovePoints.getValue().toString());
         lblPoints.setOpacity(1);
-        double posX=vScore.localToScene(vScore.getWidth()/2d,0).getX();
+        double posX = vScore.localToScene(vScore.getWidth() / 2d, 0).getX();
         lblPoints.setTranslateX(0);
-        lblPoints.setTranslateX(lblPoints.sceneToLocal(posX, 0).getX()-lblPoints.getWidth()/2d);
+        lblPoints.setTranslateX(lblPoints.sceneToLocal(posX, 0).getX() - lblPoints.getWidth() / 2d);
         lblPoints.setLayoutY(20);
         final KeyValue kvO = new KeyValue(lblPoints.opacityProperty(), 0);
         final KeyValue kvY = new KeyValue(lblPoints.layoutYProperty(), 100);
@@ -555,8 +480,8 @@ public class Board extends Group {
 
         timeline.play();
     }
-    
-    public void addTile(Tile tile){
+
+    public void addTile(Tile tile) {
         double layoutX = tile.getLocation().getLayoutX(CELL_SIZE) - (tile.getMinWidth() / 2);
         double layoutY = tile.getLocation().getLayoutY(CELL_SIZE) - (tile.getMinHeight() / 2);
 
@@ -564,7 +489,7 @@ public class Board extends Group {
         tile.setLayoutY(layoutY);
         gridGroup.getChildren().add(tile);
     }
-    
+
     public Tile addRandomTile(Location randomLocation) {
         Tile tile = Tile.newRandomTile();
         tile.setLocation(randomLocation);
@@ -574,169 +499,197 @@ public class Board extends Group {
 
         tile.setLayoutX(layoutX);
         tile.setLayoutY(layoutY);
-        tile.setScaleX(0);
-        tile.setScaleY(0);
+        tile.setScaleX(0.1);
+        tile.setScaleY(0.1);
 
         gridGroup.getChildren().add(tile);
-        
+
         return tile;
     }
-    
+
     public Group getGridGroup() {
         return gridGroup;
     }
-    
-    public void startGame(){
+
+    public void startGame() {
         restoreRecord();
 
-        time=LocalTime.now();
+        time = LocalTime.now();
         timer.playFromStart();
     }
-    
-    public void setPoints(int points){
+
+    public void setPoints(int points) {
         gameMovePoints.set(points);
     }
-   
+
     public int getPoints() {
         return gameMovePoints.get();
     }
-    
-    public void addPoints(int points){
+
+    public void addPoints(int points) {
         gameMovePoints.set(gameMovePoints.get() + points);
-        gameScoreProperty.set(gameScoreProperty.get() + points);
+        gameScore.set(gameScore.get() + points);
     }
-    
-    public void setGameOver(boolean gameOver){
-        gameOverProperty.set(gameOver);
+
+    public void setGameOverAndShare(boolean gameOverAndShare) {
+        this.gameOverAndShare.set(gameOverAndShare);
     }
-    
-    public void setGameWin(boolean won){
-        if(!gameWonProperty.get()){
-            gameWonProperty.set(won);
+
+    public void setGameOver(boolean gameOver) {
+        this.gameOver.set(gameOver);
+    }
+
+    public void setGameWin(boolean won) {
+        if (!gameWon.get()) {
+            gameWon.set(won);
         }
     }
-    public void pauseGame(){
-        if(!gamePauseProperty.get()){
-            gamePauseProperty.set(true);
+
+    public void pauseGame() {
+        if (!gamePause.get()) {
+            gamePause.set(true);
         }
     }
-    public void aboutGame(){
-        if(!gameAboutProperty.get()){
-            gameAboutProperty.set(true);
+
+    public void quitGame() {
+        if (!gameQuit.get()) {
+            gameQuit.set(true);
         }
     }
-    public void quitGame(){
-        if(!gameQuitProperty.get()){
-            gameQuitProperty.set(true);
-        }
+
+    public BooleanProperty isLayerOn() {
+        return layerOn;
     }
-    
-    public BooleanProperty isLayerOn(){
-        return layerOnProperty;
-    }
-    
+
     public BooleanProperty resetGameProperty() {
         return resetGame;
     }
-    
+
     public BooleanProperty clearGameProperty() {
         return clearGame;
     }
-    
+
     public BooleanProperty saveGameProperty() {
         return saveGame;
     }
-    
+
     public BooleanProperty restoreGameProperty() {
         return restoreGame;
     }
-    
+
+    public BooleanProperty gameWonProperty() {
+        return gameWon;
+    }
+
+    public BooleanProperty gameOverAndShareProperty() {
+        return gameOverAndShare;
+    }
+
+    public BooleanProperty gameOverProperty() {
+        return gameOver;
+    }
+
+    public BooleanProperty gameShareProperty() {
+        return gameShare;
+    }
+
     public boolean saveSession() {
-        if(!gameSaveProperty.get()){
-            gameSaveProperty.set(true);
+        if (!gameSave.get()) {
+            gameSave.set(true);
         }
         return true;
     }
-    
+
     /*
-    Once we have confirmation
-    */
+     Once we have confirmation
+     */
     public void saveSession(Map<Location, Tile> gameGrid) {
         saveGame.set(false);
-        sessionManager.saveSession(gameGrid, gameScoreProperty.getValue(), LocalTime.now().minusNanos(time.toNanoOfDay()).toNanoOfDay());
+        sessionManager.saveSession(gameGrid, gameScore.getValue(),
+                LocalTime.now().minusNanos(time.toNanoOfDay()).toNanoOfDay(),
+                getGameID());
         keepGoing();
     }
-    
+
     public boolean restoreSession() {
-        if(!gameRestoreProperty.get()){
-            gameRestoreProperty.set(true);
+        if (!gameRestore.get()) {
+            gameRestore.set(true);
         }
         return true;
     }
-    
+
     /*
-    Once we have confirmation
-    */
+     Once we have confirmation
+     */
     public boolean restoreSession(Map<Location, Tile> gameGrid) {
         timerPause.stop();
         restoreGame.set(false);
         doClearGame();
         timer.stop();
-        StringProperty sTime=new SimpleStringProperty("");
-        int score = sessionManager.restoreSession(gameGrid, sTime);
+        StringProperty sTime = new SimpleStringProperty("");
+        int score = sessionManager.restoreSession(gameGrid, sTime, gameID);
         if (score >= 0) {
-            gameScoreProperty.set(score);
+            gameScore.set(score);
             // check tiles>=2048
-            gameWonProperty.set(false);
+            gameWon.set(false);
             for (Map.Entry pair : gameGrid.entrySet()) {
-                Tile t=(Tile)pair.getValue();
-                if(t!=null && t.getValue()>=GameManager.FINAL_VALUE_TO_WIN){
-                    gameWonProperty.removeListener(wonListener);
-                    gameWonProperty.set(true);
-                    gameWonProperty.addListener(wonListener);
+                Tile t = (Tile) pair.getValue();
+                if (t != null && t.getValue() >= GameManager.FINAL_VALUE_TO_WIN) {
+                    gameWon.removeListener(wonListener);
+                    gameWon.set(true);
+                    gameWon.addListener(wonListener);
                 }
             }
-            
-            if(!sTime.get().isEmpty()){
+
+            if (!sTime.get().isEmpty()) {
                 time = LocalTime.now().minusNanos(new Long(sTime.get()));
             }
             timer.play();
             return true;
-        } 
+        }
         // not session found, restart again
         doResetGame();
         return false;
     }
-    
+
     public void saveRecord() {
-        RecordManager recordManager = new RecordManager(gridOperator.getGridSize());
-        recordManager.saveRecord(gameScoreProperty.getValue());
+        sessionManager.saveRecord(gameBest.getValue());
     }
-    
+
     private void restoreRecord() {
-        RecordManager recordManager = new RecordManager(gridOperator.getGridSize());
-        gameBestProperty.set(recordManager.restoreRecord());
+        gameBest.set(sessionManager.restoreRecord());
     }
-    
-    public void externalPause(boolean b, boolean b1){
-        if(!layerOnProperty.get()){
-            if(b1){
+
+    public void externalPause(boolean b, boolean b1) {
+        if (!layerOn.get()) {
+            if (b1) {
                 timerPause.play();
-            } else if(b && !b1){
+            } else if (b && !b1) {
                 timerPause.stop();
             }
         }
     }
 
-    private void browse(String url) {
-        Services.get(BrowserService.class)
-                .ifPresent(browser -> {
-                    try {
-                        browser.launchExternalBrowser(url);
-                    } catch (IOException | URISyntaxException ex) {
-                        Logger.getLogger(Board.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                });
+    public int getScore() {
+        return gameScore.get();
+    }
+
+    public void setGameMode(int gameMode) {
+        sessionManager.setGameMode(gameMode);
+        restoreRecord();
+    }
+
+    public final void setGameID(int gameID) {
+        this.gameID.set(gameID);
+        sessionManager.setGameID(gameID);
+    }
+
+    public int getGameID() {
+        return gameID.get();
+    }
+
+    public IntegerProperty gameIDProperty() {
+        return gameID;
     }
     
 }

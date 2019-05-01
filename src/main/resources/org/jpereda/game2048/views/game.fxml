@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import com.gluonhq.charm.glisten.control.BottomNavigation?>
+<?import com.gluonhq.charm.glisten.control.BottomNavigationButton?>
+<?import com.gluonhq.charm.glisten.control.Icon?>
+<?import com.gluonhq.charm.glisten.mvc.View?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+
+<View fx:id="view" prefHeight="600.0" prefWidth="400.0" xmlns="http://javafx.com/javafx/8.0.111" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.jpereda.game2048.views.GamePresenter">
+   <top>
+      <HBox alignment="CENTER" styleClass="bottom" BorderPane.alignment="CENTER" />
+   </top>
+   <bottom>
+      <BottomNavigation BorderPane.alignment="CENTER" fx:id="bottomNav">
+          <actionItems>
+              <BottomNavigationButton managed="false" />
+              <BottomNavigationButton fx:id="saveGame">
+                  <graphic>
+                      <Icon content="FILE_DOWNLOAD" />
+                  </graphic>
+              </BottomNavigationButton>
+              <BottomNavigationButton fx:id="restoreGame">
+                  <graphic>
+                      <Icon content="FILE_UPLOAD" />
+                  </graphic>
+              </BottomNavigationButton>
+              <BottomNavigationButton fx:id="pauseGame">
+                  <graphic>
+                      <Icon content="PAUSE_CIRCLE_OUTLINE" />
+                  </graphic>
+              </BottomNavigationButton>
+            <BottomNavigationButton fx:id="tryAgain">
+               <graphic>
+                  <Icon content="LOOP" />
+               </graphic>
+            </BottomNavigationButton>
+            <BottomNavigationButton fx:id="share">
+               <graphic>
+                  <Icon content="SHARE" />
+               </graphic>
+            </BottomNavigationButton>
+            <BottomNavigationButton fx:id="board">
+               <graphic>
+                  <Icon content="DVR" />
+               </graphic>
+            </BottomNavigationButton>
+          </actionItems>
+      </BottomNavigation>
+   </bottom>
+</View>

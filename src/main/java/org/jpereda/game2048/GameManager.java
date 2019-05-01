@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2015 2048FX 
+ * Copyright (C) 2013-2019 2048FX
  * Jose Pereda, Bruno Borges & Jens Deters
  * All rights reserved.
  *
@@ -19,6 +19,7 @@
 
 package org.jpereda.game2048;
 
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -36,48 +37,50 @@ import javafx.animation.ScaleTransition;
 import javafx.animation.SequentialTransition;
 import javafx.animation.Timeline;
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleBooleanProperty;
-import javafx.scene.Group;
-import javafx.scene.layout.HBox;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
+import javafx.scene.layout.Region;
 import javafx.util.Duration;
+import org.jpereda.game2048.legacy.OldRecordManager;
+import org.jpereda.game2048.legacy.OldSessionManager;
 
 /**
  *
  * @author jpereda
  */
-public class GameManager extends Group {
-    
-    public static final int FINAL_VALUE_TO_WIN = 2048;
-    
+public class GameManager extends Region {
+
+    static final int FINAL_VALUE_TO_WIN = 2048;
+    private final double timeFactor=1;
+
     private Board board;
     private GridOperator gridOperator;
     private volatile boolean movingTiles = false;
     private final List<Location> locations = new ArrayList<>();
-    private Map<Location, Tile> gameGrid;
+    private final Map<Location, Tile> gameGrid;
     private final Set<Tile> mergedToBeRemoved = new HashSet<>();
-    private final BooleanProperty moving = new SimpleBooleanProperty(false);
-    private final ParallelTransition parallelTransition = new ParallelTransition();
-    
+
+    // true only after every 2048 found, until the game is saved
+    private final BooleanProperty tile2048Found = new SimpleBooleanProperty();
+
     public GameManager() {
         this(GridOperator.DEFAULT_GRID_SIZE);
     }
-    
+
     /**
      * GameManager is a Group containing a Board that holds a grid and the score
      * a Map holds the location of the tiles in the grid
-     * 
-     * The purpose of the game is sum the value of the tiles up to 2048 points
-     * Based on the Javascript version: https://github.com/gabrielecirulli/2048
-     * 
+     *
      * @param gridSize defines the size of the grid, default 4x4
      */
     public GameManager(int gridSize) {
         this.gameGrid = new HashMap<>();
-        
-        gridOperator=new GridOperator(gridSize);
+
+        gridOperator = new GridOperator(gridSize);
         board = new Board(gridOperator);
         this.getChildren().add(board);
-
         board.clearGameProperty().addListener((ov, b, b1) -> {
             if (b1) {
                 initializeGameGrid();
@@ -102,33 +105,36 @@ public class GameManager extends Group {
         initializeGameGrid();
         startGame();
     }
-    
+
     /**
      * Initializes all cells in gameGrid map to null
      */
     private void initializeGameGrid() {
         gameGrid.clear();
         locations.clear();
-        for(Integer x: gridOperator.getTraverseX()){
-            for(Integer y:gridOperator.getTraverseY()){
+        for (Integer x : gridOperator.getTraverseX()) {
+            for (Integer y : gridOperator.getTraverseY()) {
                 Location thisloc = new Location(x, y);
                 locations.add(thisloc);
                 gameGrid.put(thisloc, null);
             }
         }
-        
     }
+
     /**
      * Starts the game by adding 1 or 2 tiles at random locations
      */
     private void startGame() {
+        tile2048Found.set(false);
         Tile tile0 = Tile.newRandomTile();
         List<Location> randomLocs = new ArrayList<>(locations);
-        Collections.shuffle(randomLocs);
+        Random random = new Random();
+        random.setSeed(System.currentTimeMillis());
+        Collections.shuffle(randomLocs, random);
         tile0.setLocation(randomLocs.get(0));
 
         gameGrid.put(tile0.getLocation(), tile0);
-        
+
         if (new Random().nextFloat() <= 0.8) { // gives 80% chance to add a second tile
             Tile tile1 = Tile.newRandomTile();
             if (tile1.getValue() == 4 && tile0.getValue() == 4) {
@@ -142,7 +148,7 @@ public class GameManager extends Group {
 
         board.startGame();
     }
-    
+
     /**
      * Redraws all tiles in the <code>gameGrid</code> object
      */
@@ -153,7 +159,7 @@ public class GameManager extends Group {
             }
         }
     }
-    
+
     private int tilesWereMoved = 0;
     private void moveTiles(Direction direction) {
         synchronized (gameGrid) {
@@ -161,9 +167,11 @@ public class GameManager extends Group {
                 return;
             }
         }
-        
+
+        ParallelTransition parallelTransition = new ParallelTransition();
         board.setPoints(0);
         tilesWereMoved = 0;
+        mergedToBeRemoved.clear();
         gridOperator.sortGrid(direction);
         for(Integer x: gridOperator.getTraverseX()){
             for(Integer y:gridOperator.getTraverseY()){
@@ -173,8 +181,8 @@ public class GameManager extends Group {
                 AtomicInteger result=new AtomicInteger();
                 Location nextLocation = farthestLocation.offset(direction); // calculates to a possible merge
                 if(nextLocation!=null && gameGrid.get(nextLocation)!=null){
-                    Tile t=gameGrid.get(nextLocation);
-                    if(t.isMergeable(tile) && !t.isMerged()){
+                    Tile t = gameGrid.get(nextLocation);
+                    if (t.isMergeable(tile) && !t.isMerged()) {
                         t.merge(tile);
                         t.toFront();
                         gameGrid.put(nextLocation, t);
@@ -187,12 +195,14 @@ public class GameManager extends Group {
                         board.addPoints(t.getValue());
 
                         if (t.getValue() == FINAL_VALUE_TO_WIN) {
+                            tile2048Found.set(false);
                             board.setGameWin(true);
+                            tile2048Found.set(true);
                         }
                         result.set(1);
                     }
                 }
-                if (result.get()==0 && tile!=null && !farthestLocation.equals(thisloc)) {
+                if (result.get() == 0 && tile != null && !farthestLocation.equals(thisloc)) {
                     parallelTransition.getChildren().add(animateExistingTile(tile, farthestLocation));
 
                     gameGrid.put(farthestLocation, tile);
@@ -205,45 +215,46 @@ public class GameManager extends Group {
                 tilesWereMoved+=result.get();
             }
         }
-        
+
         board.animateScore();
 
-        parallelTransition.setOnFinished(e -> {
-            synchronized (gameGrid) {
-                movingTiles = false;
-                moving.set(false);
-            }
-            
-            board.getGridGroup().getChildren().removeAll(mergedToBeRemoved);
+        if(parallelTransition.getChildren().size()>0){
 
-            Location randomAvailableLocation = findRandomAvailableLocation();
-            if (randomAvailableLocation == null && mergeMovementsAvailable() == 0 ) {
-                // game is over if there are no more moves available
-                board.setGameOver(true);
-            } else if (randomAvailableLocation != null && tilesWereMoved > 0) {
-                addAndAnimateRandomTile(randomAvailableLocation);
-            }
+            parallelTransition.setOnFinished(e -> {
+                board.getGridGroup().getChildren().removeAll(mergedToBeRemoved);
 
-            mergedToBeRemoved.clear();
-
-            // reset merged after each movement
-            for(Tile t:gameGrid.values()){
-                if(t!=null){
-                    t.clearMerge();
+                // reset merged after each movement
+                for (Tile t : gameGrid.values()) {
+                    if (t != null) {
+                        t.clearMerge();
+                    }
                 }
+
+                Location randomAvailableLocation = findRandomAvailableLocation();
+                if (randomAvailableLocation == null && mergeMovementsAvailable() == 0 ) {
+                    // game is over if there are no more moves available
+                    board.setGameOverAndShare(true);
+                } else if (randomAvailableLocation != null && tilesWereMoved > 0) {
+                    synchronized (gameGrid) {
+                        movingTiles = false;
+                    }
+                    ScaleTransition scaleTransition=addAndAnimateRandomTile(randomAvailableLocation);
+                    scaleTransition.setOnFinished(t -> {
+                        if(checkEndGame()) {
+                            board.setGameOverAndShare(true);
+                        }
+                    });
+                    scaleTransition.play();
+                }
+            });
+
+            synchronized (gameGrid) {
+                movingTiles = true;
             }
-            
-        });
-                
-        synchronized (gameGrid) {
-            movingTiles = true;
-            moving.set(true);
+            parallelTransition.play();
         }
-        
-        parallelTransition.play();
-        parallelTransition.getChildren().clear();
     }
-    
+
     /**
      * Searchs for the farthest empty location where the current tile could go
      * @param location of the tile
@@ -260,14 +271,14 @@ public class GameManager extends Group {
 
         return farthest;
     }
-    
+
     /**
      * Finds the number of pairs of tiles that can be merged
-     * 
-     * This method is called only when the grid is full of tiles, 
-     * what makes the use of Optional unnecessary, but it could be used when the 
-     * board is not full to find the number of pairs of mergeable tiles and provide a hint 
-     * for the user, for instance 
+     *
+     * This method is called only when the grid is full of tiles,
+     * what makes the use of Optional unnecessary, but it could be used when the
+     * board is not full to find the number of pairs of mergeable tiles and provide a hint
+     * for the user, for instance
      * @return the number of pairs of tiles that can be merged
      */
     private int mergeMovementsAvailable() {
@@ -292,7 +303,7 @@ public class GameManager extends Group {
         } while(cont<2);
         return pairsOfMergeableTiles.get();
     }
-    
+
     /**
      * Finds a random location or returns null if none exist
      *
@@ -307,7 +318,7 @@ public class GameManager extends Group {
                 if(gameGrid.get(thisloc)==null){
                     availableLocations.add(thisloc);
                 }
-                
+
             }
         }
 
@@ -315,48 +326,44 @@ public class GameManager extends Group {
             return null;
         }
 
-        Collections.shuffle(availableLocations);
-        Location randomLocation = availableLocations.get(new Random().nextInt(availableLocations.size()));
+        Random random = new Random();
+        random.setSeed(System.currentTimeMillis());
+        Collections.shuffle(availableLocations, random);
+        Location randomLocation = availableLocations.get(random.nextInt(availableLocations.size()));
         return randomLocation;
     }
-    
+
     /**
      * Adds a tile of random value to a random location with a proper animation
-     * 
-     * @param randomLocation 
+     *
+     * @param randomLocation
      */
-    private void addAndAnimateRandomTile(Location randomLocation) {
+    private ScaleTransition addAndAnimateRandomTile(Location randomLocation) {
         Tile tile = board.addRandomTile(randomLocation);
         gameGrid.put(tile.getLocation(), tile);
-        
-        animateNewlyAddedTile(tile).play();
+
+        return animateNewlyAddedTile(tile);
     }
-    
+
     /**
-     * Animation that creates a fade in effect when a tile is added to the game 
-     * by increasing the tile scale from 0 to 100% 
+     * Animation that creates a fade in effect when a tile is added to the game
+     * by increasing the tile scale from 0 to 100%
      * @param tile to be animated
-     * @return a scale transition 
+     * @return a scale transition
      */
     private ScaleTransition animateNewlyAddedTile(Tile tile) {
-        final ScaleTransition scaleTransition = new ScaleTransition(Duration.millis(125), tile);
+        final ScaleTransition scaleTransition = new ScaleTransition(Duration.millis(125*timeFactor), tile);
         scaleTransition.setToX(1.0);
         scaleTransition.setToY(1.0);
         scaleTransition.setInterpolator(Interpolator.EASE_OUT);
-        scaleTransition.setOnFinished(e -> {
-            // after last movement on full grid, check if there are movements available
-            if (checkEndGame()) {
-                board.setGameOver(true);
-            }
-        });
         return scaleTransition;
     }
-    
+
     /**
-     * Animation that moves the tile from its previous location to a new location 
+     * Animation that moves the tile from its previous location to a new location
      * @param tile to be animated
      * @param newLocation new location of the tile
-     * @return a timeline 
+     * @return a timeline
      */
     private Timeline animateExistingTile(Tile tile, Location newLocation) {
         Timeline timeline = new Timeline();
@@ -365,83 +372,93 @@ public class GameManager extends Group {
         KeyValue kvY = new KeyValue(tile.layoutYProperty(),
                 newLocation.getLayoutY(Board.CELL_SIZE) - (tile.getMinHeight() / 2), Interpolator.EASE_OUT);
 
-        KeyFrame kfX = new KeyFrame(Duration.millis(65), kvX);
-        KeyFrame kfY = new KeyFrame(Duration.millis(65), kvY);
+        KeyFrame kfX = new KeyFrame(Duration.millis(65*timeFactor), kvX);
+        KeyFrame kfY = new KeyFrame(Duration.millis(65*timeFactor), kvY);
 
         timeline.getKeyFrames().add(kfX);
         timeline.getKeyFrames().add(kfY);
 
         return timeline;
     }
-    
+
     /**
      * Animation that creates a pop effect when two tiles merge
-     * by increasing the tile scale to 120% at the middle, and then going back to 100% 
+     * by increasing the tile scale to 120% at the middle, and then going back to 100%
      * @param tile to be animated
-     * @return a sequential transition 
+     * @return a sequential transition
      */
     private SequentialTransition animateMergedTile(Tile tile) {
-        final ScaleTransition scale0 = new ScaleTransition(Duration.millis(80), tile);
+        final ScaleTransition scale0 = new ScaleTransition(Duration.millis(80*timeFactor), tile);
         scale0.setToX(1.2);
         scale0.setToY(1.2);
         scale0.setInterpolator(Interpolator.EASE_IN);
 
-        final ScaleTransition scale1 = new ScaleTransition(Duration.millis(80), tile);
+        final ScaleTransition scale1 = new ScaleTransition(Duration.millis(80*timeFactor), tile);
         scale1.setToX(1.0);
         scale1.setToY(1.0);
         scale1.setInterpolator(Interpolator.EASE_OUT);
 
         return new SequentialTransition(scale0, scale1);
     }
-    
+
     private boolean checkEndGame(){
-        int result=0;
         for(Integer x: gridOperator.getTraverseX()){
             for(Integer y:gridOperator.getTraverseY()){
-                 if(gameGrid.get(new Location(y, x))==null){
-                    result+=1;
+                if(gameGrid.get(new Location(y, x))==null){
+                    return false;
                 }
             }
         }
-        return result==0 && mergeMovementsAvailable() == 0;
+        return mergeMovementsAvailable() == 0;
     }
-    
+
+    /**
+     * Set gameManager scale to adjust overall game size
+     */
+    @Override
+    protected void layoutChildren() {
+        super.layoutChildren();
+        double scale = Math.min(this.getWidth() / board.getWidth(), this.getHeight() / board.getHeight());
+        board.setScaleX(scale);
+        board.setScaleY(scale);
+        board.setLayoutX((this.getWidth() - board.getWidth()) / 2d);
+        board.setLayoutY((this.getHeight()- board.getHeight()) / 2d);
+    }
+
     /*************************************************************************/
     /************************ Public methods *********************************/
     /*************************************************************************/
 
     /**
      * Move the tiles according user input if overlay is not on
-     * @param direction 
+     * @param direction
      */
     public void move(Direction direction){
         if (!board.isLayerOn().get()) {
             moveTiles(direction);
         }
     }
-    
-    /**
-     * Set gameManager scale to adjust overall game size
-     * @param scale 
-     */
-    public void setScale(double scale) {
-        this.setScaleX(scale);
-        this.setScaleY(scale);
-    }
 
     /**
      * Check if overlay covers the grid or not
-     * @return 
+     * @return
      */
-    public BooleanProperty isLayerOn() {
+    public BooleanProperty overlayVisible() {
         return board.isLayerOn();
     }
-    
+
     /**
      * Pauses the game time, covers the grid
      */
     public void pauseGame() {
         board.pauseGame();
+    }
+
+    /**
+     * Resumes gameplay when paused
+     */
+    public void keepGoing(){
+        board.keepGoing();
     }
 
     /**
@@ -451,7 +468,7 @@ public class GameManager extends Group {
         board.quitGame();
     }
 
-    /** 
+    /**
      * Ask to save the game from a properties file with confirmation
      */
     public void saveSession() {
@@ -461,17 +478,18 @@ public class GameManager extends Group {
      * Save the game to a properties file, without confirmation
      */
     private void doSaveSession() {
+        tile2048Found.set(false);
         board.saveSession(gameGrid);
     }
 
-    /** 
+    /**
      * Ask to restore the game from a properties file with confirmation
      */
     public void restoreSession() {
         board.restoreSession();
     }
-    
-    /** 
+
+    /**
      * Restore the game from a properties file, without confirmation
      */
     private void doRestoreSession() {
@@ -489,18 +507,95 @@ public class GameManager extends Group {
     }
 
     public void tryAgain() {
-        board.tryAgain();
+        tryAgain(true);
     }
-    
-    public void aboutGame() {
-        board.aboutGame();
+
+    public void tryAgain(boolean ask) {
+        board.tryAgain(ask);
     }
-    
-    public void setToolBar(HBox toolbar){
-        board.setToolBar(toolbar);
-    }
-    
+
     public void externalPause(boolean b, boolean b1){
         board.externalPause(b,b1);
+    }
+
+    public int getScore(){
+        return board.getScore();
+    }
+
+    public int getPoints(){
+        return board.getPoints();
+    }
+
+    public boolean isGameOverAndShare() {
+        return board.isGameOverAndShare();
+    }
+
+    public boolean isGameOver() {
+        return board.isGameOver();
+    }
+
+    public boolean isGameWon() {
+        return board.isGameWon();
+    }
+
+    public BooleanProperty gameWonProperty() {
+        return board.gameWonProperty();
+    }
+
+    public BooleanProperty gameOverAndShareProperty() {
+        return board.gameOverAndShareProperty();
+    }
+
+    public BooleanProperty gameOverProperty() {
+        return board.gameOverProperty();
+    }
+
+    public BooleanProperty gameShareProperty() {
+        return board.gameShareProperty();
+    }
+
+    public BooleanProperty tile2048FoundProperty() {
+        return tile2048Found;
+    }
+
+    public void setTile2048Found(boolean enabled){
+        tile2048Found.set(enabled);
+    }
+
+    public boolean isTile2048Found(){
+        return tile2048Found.get();
+    }
+
+    public void setGameMode(int gameMode){
+        board.setGameMode(gameMode);
+    }
+
+    public void setGameID(int gameID) {
+        board.setGameID(gameID);
+    }
+
+    public int getGameID() {
+        return board.getGameID();
+    }
+    public IntegerProperty gameIDProperty() {
+        return board.gameIDProperty();
+    }
+
+    public final static void legacySettings() {
+        GridOperator oldGridOperator = new GridOperator();
+        OldSessionManager oldSession = new OldSessionManager(oldGridOperator);
+        Map<Location, Tile> oldGameGrid = new HashMap<>();
+        StringProperty oldTime = new SimpleStringProperty();
+        int oldScore = oldSession.restoreSession(oldGameGrid, oldTime);
+
+        if (oldScore > -1) {
+            SessionManager session = new SessionManager(oldGridOperator.getGridSize());
+            LocalTime oldLocalTime = LocalTime.now().minusNanos(new Long(oldTime.get()));
+            session.saveSession(oldGameGrid, oldScore, LocalTime.now().minusNanos(oldLocalTime.toNanoOfDay()).toNanoOfDay(), 0);
+
+            OldRecordManager oldRecord = new OldRecordManager(oldGridOperator.getGridSize());
+            int restoreRecord = oldRecord.restoreRecord();
+            session.saveRecord(restoreRecord);
+        }
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2015 2048FX 
+ * Copyright (C) 2013-2019 2048FX
  * Jose Pereda, Bruno Borges & Jens Deters
  * All rights reserved.
  *
@@ -28,12 +28,12 @@ public class Tile extends Label {
     private Integer value;
     private Location location;
     private Boolean merged;
-    
+
     public static Tile newRandomTile() {
         int value = new Random().nextDouble() < 0.9 ? 2 : 4;
         return new Tile(value);
     }
-    
+
     public static Tile newTile(int value) {
         return new Tile(value);
     }
@@ -48,9 +48,9 @@ public class Tile extends Label {
         this.value = value;
         this.merged = false;
         setText(value.toString());
-        getStyleClass().addAll("game-label", "game-tile-" + value);
+        getStyleClass().setAll("game-label", "game-tile-" + value);
     }
-    
+
     public void merge(Tile another) {
         getStyleClass().remove("game-tile-" + value);
         this.value += another.getValue();
@@ -75,7 +75,7 @@ public class Tile extends Label {
     public String toString() {
         return "Tile{" + "value=" + value + ", location=" + location + '}';
     }
-    
+
     public boolean isMerged() {
         return merged;
     }

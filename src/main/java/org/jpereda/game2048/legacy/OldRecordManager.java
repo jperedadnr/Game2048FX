@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2015 2048FX 
+ * Copyright (C) 2013-2019 2048FX
  * Jose Pereda, Bruno Borges & Jens Deters
  * All rights reserved.
  *
@@ -16,56 +16,43 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+package org.jpereda.game2048.legacy;
 
-package org.jpereda.game2048;
+import com.gluonhq.charm.down.Services;
+import com.gluonhq.charm.down.plugins.StorageService;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.gluonhq.charm.down.Services;
-import com.gluonhq.charm.down.plugins.StorageService;
-
 /**
  *
  * @author José Pereda
  */
-public class RecordManager {
+public class OldRecordManager {
 
     public final String SESSION_PROPERTIES_FILENAME;
-    private File path;
+    private final File path;
     private final Properties props = new Properties();
 
-    public RecordManager(int grid_size) {
+    public OldRecordManager(int grid_size) {
+        
         path = Services.get(StorageService.class)
                 .flatMap(service -> service.getPrivateStorage())
                 .orElse(new File(System.getProperty("java.io.tmpdir")));
-
+        
         this.SESSION_PROPERTIES_FILENAME = "game2048_" + grid_size + "_record.properties";
-    }
-
-    public void saveRecord(Integer score) {
-        int oldRecord = restoreRecord();
-
-        try {
-            props.setProperty("record", Integer.toString(Math.max(oldRecord, score)));
-            File file=new File(path,SESSION_PROPERTIES_FILENAME);
-            props.store(new FileWriter(file), SESSION_PROPERTIES_FILENAME);
-        } catch (IOException ex) {
-            Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
-        }
     }
 
     public int restoreRecord() {
         Reader reader = null;
         try {
-            File file=new File(path,SESSION_PROPERTIES_FILENAME);
+            File file = new File(path,SESSION_PROPERTIES_FILENAME);
             reader = new FileReader(file);
             props.load(reader);
         } catch (FileNotFoundException ignored) {

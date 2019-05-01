@@ -1,0 +1,125 @@
+@import "game.css";
+
+.bottom-nav {
+    -fx-background-color: -primary-swatch-700;
+}
+
+.bottom-nav > .bottom-nav-button:disabled {
+    -fx-opacity: 0.3;
+}
+
+.bottom {
+    -fx-background-color: -primary-swatch-700;
+    -fx-effect: -elevation-z1;
+    -fx-text-fill: white;
+}
+
+.bottom .tool-bar.board {
+    -fx-padding: 14;
+    -fx-padding: 27 20 26 20;
+}
+
+.tool-bar, 
+.app-bar {
+    -fx-background-color: -primary-swatch-700;
+    -fx-spacing: 20;
+    -fx-text-fill: white;
+}
+
+.app-bar > .nav-area > .button {
+    -fx-text-fill: white;
+}
+
+.app-bar > .title-box > .label,
+.app-bar > .title-box > * > .label {
+    -fx-text-fill: white;
+    -fx-font-size: 1.4em;
+}
+
+.tool-bar .button.icon-toggle:disabled {
+  -fx-text-fill: black;
+}
+
+.board > .list-tile {
+    -fx-padding: 5 10 5 10;
+}
+
+.board > .list-tile > .text-box {
+    -fx-padding: 0;
+}
+
+.board > .list-tile > .text-box > .primary-text {
+    -fx-font-size: 1.2em;
+}
+
+.board > .list-tile > .text-box > .secondary-text {
+    -fx-font-size: 0.9em;
+}
+
+.board > .list-tile > .primary-graphic {
+    -fx-min-width: 130;
+    -fx-padding: 0 20 0 10;
+}
+
+.board > .list-tile > .secondary-graphic {
+    -fx-font-size: 1.3em;
+    -fx-padding: 0 12 0 12;
+}
+
+.avatar > .decoration {
+    -fx-stroke: -primary-swatch-800;
+    -fx-stroke-width: 1.3pt;
+}
+
+.dialog {
+    -fx-background-radius: 2.8;
+    -fx-border-radius: 2.8;
+}
+
+.dialog > * > .image-view {
+    -fx-image: url("Icon-60.png")
+}
+
+.dialog > * > .image-view.about {
+    -fx-image: url("game.png")
+}
+
+.navigation-drawer.header > .header-content {
+    -fx-background-color: -primary-swatch-400;
+}
+
+.drawer-bottom {
+    -fx-background-color: #ececec;
+    -fx-border-color: #e0e0e0; 
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 10;
+    -fx-alignment: center_left;
+}
+
+.drawer-bottom > * > .image-view {
+    -fx-image: url("Icon-60.png")
+}
+
+.drawer-bottom > * > .label {
+    -fx-max-width: infinity;
+}
+
+.label {
+    -fx-graphic-text-gap: 10;
+}
+
+.settings-pane > .extended-pane > .extended-top > .label {
+    -fx-font-size: 1.3em;
+}
+
+.settings-pane > .extended-pane > .extended-top > .combo-box {
+    -fx-font-size: 1.3em;
+}
+
+.settings-pane > .extended-pane > .extended-top > .combo-box .list-cell {
+    -fx-padding: 10;
+}
+
+.settings-pane > .extended-pane > .extended-center > * > .extended-text {
+    -fx-font-size: 1.2em;
+}

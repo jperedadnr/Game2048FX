@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import com.gluonhq.charm.glisten.mvc.View?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.ToolBar?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+
+<View fx:id="view" prefHeight="600.0" prefWidth="400.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.jpereda.game2048.views.BoardPresenter">
+    <center>
+        <ListView fx:id="scoreBoardDay" />
+    </center>
+    <bottom>
+        <HBox alignment="CENTER_RIGHT" styleClass="bottom" BorderPane.alignment="CENTER">
+         <children>
+            <ToolBar fx:id="bottomGame" styleClass="board" style="-fx-effect: null;">
+                  <items>
+                      <Label fx:id="labelMode" style="-fx-font-size: 1.0em;" text="Easy">
+                     <padding>
+                        <Insets right="10.0" />
+                     </padding>
+                      </Label>
+                  </items>
+              </ToolBar>
+         </children>
+        </HBox>
+    </bottom>
+</View>

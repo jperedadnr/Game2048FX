@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import com.gluonhq.charm.glisten.control.SettingsPane?>
+<?import com.gluonhq.charm.glisten.mvc.View?>
+<?import javafx.scene.layout.BorderPane?>
+
+
+<View fx:id="settings" prefHeight="600.0" prefWidth="400.0" xmlns="http://javafx.com/javafx/8.0.65" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.jpereda.game2048.views.SettingsPresenter">
+   <center>
+      <SettingsPane fx:id="settingsPane" searchBoxVisible="false" BorderPane.alignment="CENTER" />
+   </center>
+</View>

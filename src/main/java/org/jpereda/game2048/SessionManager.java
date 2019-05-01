@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2015 2048FX 
+ * Copyright (C) 2013-2019 2048FX
  * Jose Pereda, Bruno Borges & Jens Deters
  * All rights reserved.
  *
@@ -19,20 +19,15 @@
 
 package org.jpereda.game2048;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Reader;
-import java.util.Map;
-import java.util.Properties;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import com.gluonhq.charm.down.Services;
-import com.gluonhq.charm.down.plugins.StorageService;
+import com.gluonhq.charm.down.plugins.SettingsService;
+import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.StringProperty;
+
+import java.util.Map;
+
+import static org.jpereda.game2048.Game2048.GAME_ID;
+import static org.jpereda.game2048.Game2048.GAME_MODE;
 
 /**
  *
@@ -40,76 +35,142 @@ import javafx.beans.property.StringProperty;
  */
 public class SessionManager {
 
-    public final String SESSION_PROPERTIES_FILENAME;
-    private File path;
-    private final Properties props = new Properties();
-    private final GridOperator gridOperator;
+    private final int gridSize;
+    private int gameMode;
 
-    public SessionManager(GridOperator gridOperator) {
-        this.gridOperator = gridOperator;
-        path = Services.get(StorageService.class)
-                .flatMap(service -> service.getPrivateStorage())
-                .orElse(new File(System.getProperty("java.io.tmpdir")));
-        this.SESSION_PROPERTIES_FILENAME = "game2048_" + gridOperator.getGridSize() + ".properties";
+    public SessionManager(int gridSize) {
+        this.gridSize = gridSize;
+
+        gameMode = Services.get(SettingsService.class)
+                .map(settings -> Integer.parseInt(settings.retrieve("game_mode")))
+                .orElse(0);
     }
 
-    public void saveSession(Map<Location, Tile> gameGrid, Integer score, Long time) {
-        try {
-            for(int x=0; x<gridOperator.getGridSize(); x++){
-                for(int y=0; y<gridOperator.getGridSize(); y++){
-                    Tile t = gameGrid.get(new Location(x, y));
-                    props.setProperty("Location_" + x + "_" + y,
-                            t!=null? t.getValue().toString() : "0");
-                }
+    public void saveSession(Map<Location, Tile> gameGrid, Integer score, Long time, int gameID) {
+        int[] grid = new int[gridSize * gridSize];
+        for (int y = 0; y < gridSize; y++) {
+            for (int x = 0; x < gridSize; x++) {
+                Tile t = gameGrid.get(new Location(x, y));
+                grid[x + gridSize * y] = t != null ? t.getValue() : 0;
             }
-            props.setProperty("score", score.toString());
-            props.setProperty("time", time.toString());
-            File file=new File(path,SESSION_PROPERTIES_FILENAME);
-            props.store(new FileWriter(file), SESSION_PROPERTIES_FILENAME);
-        } catch (IOException ex) {
-            Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
         }
+        Services.get(SettingsService.class).ifPresent(settings -> {
+            settings.store("Location." + gridSize + "." + gameMode, storeBoard(grid));
+            settings.store("score." + gridSize + "." + gameMode, score.toString());
+            settings.store("time." + gridSize + "." + gameMode, time.toString());
+            settings.store("gameID." + gridSize + "." + gameMode, Integer.toString(gameID));
+        });
     }
 
-    public int restoreSession(Map<Location, Tile> gameGrid, StringProperty time) {
-        Reader reader = null;
-        try {
-            File file=new File(path,SESSION_PROPERTIES_FILENAME);
-            reader = new FileReader(file);
-            props.load(reader);
-        } catch (FileNotFoundException ignored) {
-            return -1;
-        } catch (IOException ex) {
-            Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
-        } finally {
-            try {
-                if (reader != null) {
-                    reader.close();
-                }
-            } catch (IOException ex) {
-                Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
+    public int restoreSession(Map<Location, Tile> gameGrid, StringProperty time, IntegerProperty gameID) {
+        return Services.get(SettingsService.class)
+                .map(settings -> {
+                    String stored = settings.retrieve("Location." + gridSize + "." + gameMode);
+                    if (stored != null) {
+                        int[] grid = restoreBoard(stored);
+                        for (int y = 0; y < gridSize; y++) {
+                            for (int x = 0; x < gridSize; x++) {
+                                int val = grid[x + gridSize * y];
+                                if (val > 1) {
+                                    Tile t = Tile.newTile(val);
+                                    Location l = new Location(x, y);
+                                    t.setLocation(l);
+                                    gameGrid.put(l, t);
+                                }
+                            }
+                        }
+                    }
+                    String t = settings.retrieve("time." + gridSize + "." + gameMode);
+                    if (t != null) {
+                        time.set(t);
+                    }
+
+                    String game = settings.retrieve("gameID." + gridSize + "." + gameMode);
+                    if (game != null) {
+                        gameID.set(Integer.parseInt(game));
+                    }
+
+                    String score = settings.retrieve("score." + gridSize + "." + gameMode);
+                    if (score != null) {
+                        return new Integer(score);
+                    }
+                    return -1;
+                })
+                .orElse(-1);
+    }
+
+    public void saveRecord(Integer score) {
+        int oldRecord = restoreRecord();
+        Services.get(SettingsService.class)
+                .ifPresent(settings ->
+                        settings.store("record." + gridSize + "." + gameMode,
+                                Integer.toString(Math.max(oldRecord, score))));
+    }
+
+    public int restoreRecord() {
+        return Services.get(SettingsService.class)
+                .map(settings -> {
+                    String record = settings.retrieve("record." + gridSize + "." + gameMode);
+                    if (record != null) {
+                        return new Integer(record);
+                    }
+                    return 0;
+                })
+                .orElse(0);
+    }
+
+    /*
+    Converts 4x4 grid into String of 32 chars
+    Each tile is stored with a value of its power of 2:
+    0->00, 2->01, 4->02, 8->03, ... 2048->0B, .... 32768->0F, 65536->10, 131072->11, 262144->12
+    */
+    private String storeBoard(int[] grid) {
+        String board = "";
+        for (int i = grid.length-1; i >= 0; i--) {
+            int cont=0;
+            int x = grid[i] == 0 ? 1 : grid[i];
+            while (((x & 1) == 0) && x > 1) {
+                x >>= 1;
+                cont++;
             }
+            String s = Long.toString(cont, 16);
+            board = board.concat(s.length() == 1 ? "0" : "").concat(s);
         }
+        return board;
+    }
 
-        for(int x=0; x<gridOperator.getGridSize(); x++){
-            for(int y=0; y<gridOperator.getGridSize(); y++){
-                String val = props.getProperty("Location_" + x + "_" + y);
-                if (!val.equals("0")) {
-                    Tile t = Tile.newTile(new Integer(val));
-                    Location l = new Location(x, y);
-                    t.setLocation(l);
-                    gameGrid.put(l, t);
-                }
-            }
+    private static int[] restoreBoard(String stored) {
+        int[] grid = new int[16];
+        for(int i = 0; i < grid.length; i++) {
+            String s = stored.substring(stored.length() - 2, stored.length());
+            stored=stored.substring(0,stored.length() - 2);
+            int val = 1 << Long.parseLong(s, 16);
+            grid[i] = val > 1 ? val : 0;
         }
+        return grid;
+    }
 
-        time.set(props.getProperty("time"));
+    public void setGameMode(int gameMode) {
+        this.gameMode = gameMode;
+        Services.get(SettingsService.class)
+                .ifPresent(settings -> settings.store(GAME_MODE, Integer.toString(gameMode)));
+    }
 
-        String score = props.getProperty("score");
-        if (score != null) {
-            return new Integer(score);
-        }
-        return 0;
+    public int getGameMode(){
+        return Services.get(SettingsService.class)
+                .map(settings -> Integer.parseInt(settings.retrieve(GAME_MODE)))
+                .orElse(0);
+    }
+
+    public void setGameID(int gameID) {
+        Services.get(SettingsService.class)
+                .ifPresent(settings -> settings.store(GAME_ID, Integer.toString(gameID)));
+    }
+
+    public int getGameID(){
+        return Services.get(SettingsService.class)
+                .map(settings -> Integer.parseInt(settings.retrieve(GAME_ID)))
+                .orElse(0);
     }
 
 }

@@ -29,14 +29,18 @@ buildscript {
 apply plugin: 'org.javafxports.jfxmobile'
 
 repositories {
-    jcenter()
+    mavenCentral()
     maven {
-        url 'https://oss.sonatype.org/content/repositories/snapshots/'
+        url 'http://nexus.gluonhq.com/nexus/content/repositories/releases/'
     }
 }
 
 dependencies {
-    
+    compile "com.gluonhq:glisten-afterburner:1.4.1"
+
+    compile 'com.gluonhq:charm-cloudlink-client:4.5.2'
+    compile 'com.gluonhq:charm-glisten-connect-view:5.0.2'
+    compile 'com.gluonhq:connect:1.5.0'
 }
 
 mainClassName = 'org.jpereda.game2048.Game2048'
