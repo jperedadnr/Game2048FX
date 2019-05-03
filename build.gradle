@@ -53,7 +53,9 @@ jfxmobile {
     }
     ios {
         infoPList = file('src/ios/Info.plist')
-        forceLinkClasses = [ 'org.jpereda.game2048.**.*', 'com.gluonhq.charm.down.**.*' ]
+        forceLinkClasses = [ 'org.jpereda.**.*',
+                             'com.gluonhq.**.*',
+                             'org.glassfish.json.**.*' ]
     }
     
     android {
